@@ -46,17 +46,14 @@
 
   # systemPackages
   environment.systemPackages = with pkgs; [
-    vim
     curl
     wget
-    nano
-    bind
-    kubectl
-    kubernetes-helm
-    iptables
-    openvpn
-    python3
-    nodejs
+    micro
+    git
+    btop
+    zellij
+    yazi
+    podman-compose
     docker-compose
   ];
 
@@ -65,16 +62,8 @@
     settings.PermitRootLogin = "yes";
   };
 
-  programs.zsh = {
-    enable = true;
-    ohMyZsh = {
-      enable = true;
-      theme = "bira";
-    };
-  };
 
-
-  virtualisation.docker.enable = true;
+  virtualisation.podman.enable = true;
 
   networking.firewall.enable = false;
 
@@ -83,29 +72,99 @@
     enableRedistributableFirmware = true;
     firmware = [ pkgs.wireless-regdb ];
   };
+  # Networking
+  networking = {
+    # useDHCP = true;
+    interfaces.wlan0 = {
+      useDHCP = false;
+      ipv4.addresses = [{
+        # I used static IP over WLAN because I want to use it as local DNS resolver
+        address = "192.168.10.22";
+        prefixLength = 24;
+      }];
+    };
+    interfaces.eth0 = {
+      useDHCP = true;
+      # I used DHCP because sometimes I disconnect the LAN cable
+      #ipv4.addresses = [{
+      #  address = "192.168.100.3";
+      #  prefixLength = 24;
+      #}];
+    };
+
+    # Enabling WIFI
+    wireless.enable = true;
+    wireless.interfaces = [ "wlan0" ];
+    # If you want to connect also via WIFI to your router
+    wireless.networks."Scio's Network".psk = "extension";
+    # You can set default nameservers
+    # nameservers = [ "192.168.100.3" "192.168.100.4" "192.168.100.1" ];
+    # You can set default gateway
+    # defaultGateway = {
+    #  address = "192.168.1.1";
+    #  interface = "eth0";
+    # };
+  };
 
   # put your own configuration here, for example ssh keys:
-  users.defaultUserShell = pkgs.zsh;
   users.mutableUsers = true;
   users.groups = {
-    nixos = {
+    admin = {
       gid = 1000;
-      name = "nixos";
+      name = "admin";
     };
   };
   users.users = {
-    nixos = {
+    admin = {
       uid = 1000;
-      home = "/home/nixos";
-      name = "nixos";
-      group = "nixos";
+      home = "/home/admin";
+      name = "admin";
+      group = "admin";
       shell = pkgs.zsh;
-      extraGroups = [ "wheel" "docker" ];
+      extraGroups = [ "wheel" "podman" ];
     };
   };
-  users.users.root.openssh.authorizedKeys.keys = [
-    # Your ssh key
-    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDqlXJv/noNPmZMIfjJguRX3O+Z39xeoKhjoIBEyfeqgKGh9JOv7IDBWlNnd3rHVnVPzB9emiiEoAJpkJUnWNBidL6vPYn13r6Zrt/2WLT6TiUFU026ANdqMjIMEZrmlTsfzFT+OzpBqtByYOGGe19qD3x/29nbszPODVF2giwbZNIMo2x7Ww96U4agb2aSAwo/oQa4jQsnOpYRMyJQqCUhvX8LzvE9vFquLlrSyd8khUsEVV/CytmdKwUUSqmlo/Mn7ge/S12rqMwmLvWFMd08Rg9NHvRCeOjgKB4EI6bVwF8D6tNFnbsGVzTHl7Cosnn75U11CXfQ6+8MPq3cekYr lucernae@lombardia-N43SM"
+
+  system.stateVersion = "25.05";
+  system.autoUpgrade = {
+    enable = true;
+    allowReboot = true;
+  };
+
+  users.users."root".openssh.authorizedKeys.keys = [
+    #id_scw
+    ''ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJp9vehhN1YhdKZqEyhAG+5cinPFYLO6QkOJiO6VGHt iuvm-oci''
+    #id_sc24
+    ''ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILcswHuaFSSX4dVBzPhPco6HpUEJhfgXNwc1pN1eYA/j sayantan.chaudhuri@gmail.com''
+    #id_sk24
+    ''sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBDNc/EfxqykPUuQawkd0PF4gdDM/9Abea7S+hdHQbIV2xlZix/IoKiwQnvU5V8LxatCO79SsjzqshWPRkVy9kbYAAAALc3NoOmlkX3NrMjQ= scio.space''
   ];
-  system.stateVersion = "23.05";
+
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 7d";
+  };
+
+  virtualisation = {
+  	containers.enable = true;
+    podman = {
+      enable = true;
+      dockerCompat = true;
+      dockerSocket.enable = true;
+      defaultNetwork.settings.dns_enabled = true;
+    };
+    oci-containers = {
+      backend = "podman";
+      containers = {
+        # container-name = {
+        #   image = "container-image";
+        #   autoStart = true;
+        #   ports = [
+        #     "127.0.0.1:1234:1234"
+        #   ];
+        # };
+      };
+    };
+  };
 }
