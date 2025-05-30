@@ -62,9 +62,6 @@
     settings.PermitRootLogin = "yes";
   };
 
-
-  virtualisation.podman.enable = true;
-
   networking.firewall.enable = false;
 
   # WiFi
